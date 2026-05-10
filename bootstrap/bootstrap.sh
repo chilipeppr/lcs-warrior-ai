@@ -303,10 +303,21 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
 
 ## CRITICAL RULES — FOLLOW THESE EXACTLY
 
-1. **NEVER open URLs in VS Code's simple browser.** This container uses Hydrogen webviews.
+1. **NEVER use localhost or 127.0.0.1 URLs in webviews.** They will NEVER work in
+   Hydrogen. The Docker container and the browser frontend are on different hosts.
+   If you start a local server (e.g. on port 8877), you MUST use the VS Code proxy URL:
+   ```bash
+   # Get the proxy base URL from the VSCODE_PROXY_URI environment variable
+   echo "${VSCODE_PROXY_URI}8877/"
+   ```
+   This proxies through code-server so the browser can reach your container's ports.
+   If VSCODE_PROXY_URI is not set, check: `env | grep -i proxy`
+   Students and teachers will NEVER figure out localhost issues — just use the proxy.
+
+2. **NEVER open URLs in VS Code's simple browser.** This container uses Hydrogen webviews.
    NEVER use `adom-vscode command simpleBrowser.show` or any VS Code browser command.
 
-2. **NEVER open a webview tab on top of the VS Code panel.** If a webview opens over
+3. **NEVER open a webview tab on top of the VS Code panel.** If a webview opens over
    VS Code, the user loses sight of this Claude chat and CANNOT get back. This is the
    most dangerous thing you can do. ALWAYS open webviews in a NON-VS-Code pane.
 
@@ -334,7 +345,7 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
    adom-cli hydrogen workspace active-tab --name "Page Title"
    ```
 
-3. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`,
+4. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`,
    or direct HTTP/API calls to any wiki URL. Never fall back to the Adom Wiki
    (`wiki-ufypy5dpx93o.adom.cloud`) — it does not exist for LCS users.
    ```bash
@@ -345,14 +356,14 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
    ```
    If `lcs-wiki` is missing, tell the user to run the bootstrap command.
 
-4. **Use `adom-vscode` for VS Code operations** (open files, reveal in explorer, etc.),
+5. **Use `adom-vscode` for VS Code operations** (open files, reveal in explorer, etc.),
    NOT the `code` CLI which does not exist in this container.
 
-5. **Use LCS branding** (navy #001E60, gold #C5A44E, Source Sans Pro) for ALL visual output.
+6. **Use LCS branding** (navy #001E60, gold #C5A44E, Source Sans Pro) for ALL visual output.
 
-6. **Content must be school-appropriate** — this is a Christian school.
+7. **Content must be school-appropriate** — this is a Christian school.
 
-7. **Student data is FERPA/COPPA protected** — read the `lcs-security` skill before
+8. **Student data is FERPA/COPPA protected** — read the `lcs-security` skill before
    handling any student data, posting externally, or sending messages.
 
 ## Warriors Wiki
