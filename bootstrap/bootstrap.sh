@@ -615,7 +615,7 @@ except Exception as e:
 " || true
 
   # Disable pane focus mode (all panels receive mouse events without clicking to activate)
-  adom-cli carbon user hydrogen-settings '{"general.pane_focus_mode": false}' >/dev/null 2>&1 \
+  adom-cli carbon user hydrogen-settings '{"key": "general.pane_focus_mode", "value": false}' >/dev/null 2>&1 \
     && ok "Pane focus mode disabled (no click-to-activate)" \
     || true
 fi
