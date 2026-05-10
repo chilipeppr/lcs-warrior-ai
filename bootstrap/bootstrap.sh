@@ -594,6 +594,11 @@ try:
 except Exception as e:
     print(f'  \033[1;33m\u26a0\033[0m Could not detect user identity: {e}')
 " || true
+
+  # Disable pane focus mode (all panels receive mouse events without clicking to activate)
+  adom-cli carbon user hydrogen-settings '{"general.pane_focus_mode": false}' >/dev/null 2>&1 \
+    && ok "Pane focus mode disabled (no click-to-activate)" \
+    || true
 fi
 
 # Install adom-vscode CLI
