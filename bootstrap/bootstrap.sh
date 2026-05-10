@@ -330,6 +330,8 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
      PANE=$(adom-cli hydrogen workspace split --panel-id "$VSCODE_PANE" --direction horizontal --panel-type "adom/a1b2c3d4-0031-4000-a000-000000000031" --display-name "Webview" --position after --ratio 0.5 | python3 -c "import json,sys; print(json.load(sys.stdin).get('panelId',''))")
    fi
    adom-cli hydrogen webview open-or-refresh --name "Page Title" --url "https://..." --panel-id "$PANE"
+   # ALWAYS bring the tab to the foreground after opening
+   adom-cli hydrogen workspace active-tab --name "Page Title"
    ```
 
 3. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`,
