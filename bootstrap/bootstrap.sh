@@ -351,11 +351,20 @@ USER_DISPLAY=""
 USER_EMAIL=""
 if command -v adom-cli &>/dev/null; then
   USER_INFO=$(adom-cli carbon user get 2>/dev/null || echo "{}")
-  USER_NAME=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('name',''))" 2>/dev/null || echo "")
-  USER_DISPLAY=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('display_name',''))" 2>/dev/null || echo "")
-  USER_EMAIL=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('email',''))" 2>/dev/null || echo "")
+  eval "$(echo "$USER_INFO" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+name = d.get('name') or ''
+display = d.get('display_name') or d.get('formatted_name') or name
+email = d.get('email') or ''
+print(f'USER_NAME={name!r}')
+print(f'USER_DISPLAY={display!r}')
+print(f'USER_EMAIL={email!r}')
+" 2>/dev/null)"
   if [ -n "$USER_DISPLAY" ]; then
     ok "User: $USER_DISPLAY ($USER_EMAIL)"
+  else
+    warn "User identity not found — set your profile at adom.cloud"
   fi
 fi
 
