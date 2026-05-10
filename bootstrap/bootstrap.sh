@@ -364,10 +364,13 @@ https://lcs-wiki-bpd1iwhcgswk.adom.cloud/
 - To search: `lcs-wiki page search "query"`
 - Auth: Google OAuth (@mylcs.com accounts)
 
-### Wiki URL format
+### Wiki URL format — NEVER GUESS URLs
 Wiki page URLs use the format: `https://lcs-wiki-bpd1iwhcgswk.adom.cloud/<type>/<slug>`
 where `<type>` and `<slug>` come from the `lcs-wiki page search` or `lcs-wiki page get`
-results. NEVER guess or construct URLs — always get the type and slug from the CLI first.
+results. You MUST get the type and slug from the CLI before constructing any URL.
+If a search returns no results, tell the user "I couldn't find that page on the wiki"
+— NEVER open a guessed URL that might show "Not found". A broken page terrifies
+non-technical users and they won't know how to recover.
 
 ### Webview tab management
 NEVER create multiple webview tabs. Always reuse the same tab name **"Warriors Wiki"**
