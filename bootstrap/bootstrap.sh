@@ -92,13 +92,13 @@ forced = {
     'git.enableSmartCommit': False,
     'git.autofetch': False,
     'remote.otherPortsAttributes': {'onAutoForward': 'silent'},
+    'workbench.secondarySideBar.visible': False,
 }
 for k, v in forced.items():
     if s.get(k) != v:
         s[k] = v
         changed = True
 defaults = {
-    'workbench.secondarySideBar.visible': False,
     'workbench.colorTheme': 'Default Dark Modern',
     'claudeCode.preferredLocation': 'panel',
     'claudeCode.selectedModel': 'opus',
@@ -608,11 +608,18 @@ except: pass
 " 2>/dev/null)
 
   if [ -n "$VSCODE_PANE" ]; then
-    echo "  Reloading VS Code to activate extensions..."
-    adom-cli hydrogen workspace close-panel "$VSCODE_PANE" >/dev/null 2>&1
+    # Spawn background process BEFORE closing VS Code, because closing
+    # the VS Code panel kills the terminal running this script.
+    # This detached process: reopens VS Code, waits for adom-vscode,
+    # then sets the clean Claude Code layout.
+    FIRST_RUN="false"
+    [ ! -f "$BOOTSTRAPPED_FLAG" ] && FIRST_RUN="true"
 
-    # Find the remaining pane (Warrior AI webview) to split VS Code back into
-    REMAINING_PANE=$(adom-cli hydrogen workspace tabs 2>/dev/null | python3 -c "
+    (
+      sleep 2  # let the close settle
+
+      # Find the remaining pane (Warrior AI webview) to split VS Code back into
+      REMAINING_PANE=$(adom-cli hydrogen workspace tabs 2>/dev/null | python3 -c "
 import json, sys
 try:
     tabs = json.load(sys.stdin).get('tabs', [])
@@ -620,39 +627,36 @@ try:
 except: pass
 " 2>/dev/null)
 
-    if [ -n "$REMAINING_PANE" ]; then
-      # Split to create a new VS Code panel alongside the welcome page
-      adom-cli hydrogen workspace split \
-        --panel-id "$REMAINING_PANE" \
-        --direction horizontal \
-        --panel-type "adom/a1b2c3d4-eeee-4000-a000-00000000000e" \
-        --display-name "Visual Studio Code" \
-        --position before \
-        --ratio 0.5 >/dev/null 2>&1 \
-        && ok "VS Code reloaded" \
-        || warn "Could not reopen VS Code panel"
-    fi
-
-    # On first bootstrap, wait for adom-vscode to come online then set clean layout
-    if [ ! -f "$BOOTSTRAPPED_FLAG" ]; then
-      echo "  Waiting for adom-vscode extension to activate..."
-      TRIES=0
-      while [ $TRIES -lt 10 ]; do
-        if command -v adom-vscode &>/dev/null && adom-vscode mode claudecode >/dev/null 2>&1; then
-          # Force-hide the secondary sidebar (not always closed by mode switch)
-          adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
-          ok "VS Code set to Claude Code mode (clean layout)"
-          break
-        fi
-        sleep 2
-        TRIES=$((TRIES + 1))
-      done
-      if [ $TRIES -eq 10 ]; then
-        warn "Could not set Claude Code mode — reload your browser and run: adom-vscode mode claudecode"
+      if [ -n "$REMAINING_PANE" ]; then
+        adom-cli hydrogen workspace split \
+          --panel-id "$REMAINING_PANE" \
+          --direction horizontal \
+          --panel-type "adom/a1b2c3d4-eeee-4000-a000-00000000000e" \
+          --display-name "Visual Studio Code" \
+          --position before \
+          --ratio 0.5 >/dev/null 2>&1
       fi
-      mkdir -p "$(dirname "$BOOTSTRAPPED_FLAG")"
-      touch "$BOOTSTRAPPED_FLAG"
-    fi
+
+      # On first bootstrap, wait for adom-vscode then set clean layout
+      if [ "$FIRST_RUN" = "true" ]; then
+        TRIES=0
+        while [ $TRIES -lt 15 ]; do
+          sleep 2
+          if adom-vscode mode claudecode >/dev/null 2>&1; then
+            adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
+            break
+          fi
+          TRIES=$((TRIES + 1))
+        done
+        mkdir -p "$(dirname "$BOOTSTRAPPED_FLAG")"
+        touch "$BOOTSTRAPPED_FLAG"
+      fi
+    ) </dev/null >/dev/null 2>&1 &
+    disown
+
+    echo "  Reloading VS Code to activate extensions..."
+    adom-cli hydrogen workspace close-panel "$VSCODE_PANE" >/dev/null 2>&1
+    ok "VS Code reload triggered (layout will settle in a few seconds)"
   fi
 fi
 
