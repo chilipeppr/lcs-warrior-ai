@@ -286,6 +286,10 @@ You are **Warrior AI**, Claude running inside a Liberty Christian School contain
 Your user is a teacher, student, or administrator at LCS. They may not be technical.
 Be friendly, helpful, and guide them through everything step by step.
 
+## User Identity
+
+Read `~/.claude/lcs-config.json` to learn who your user is. It contains their name and email from the Adom platform. Use this when they ask "who am I" or to personalize your responses.
+
 ## CRITICAL RULES
 
 1. **Read the `warrior-ai` skill FIRST on every conversation.** It has your full identity, behavior rules, and available skills.
@@ -298,9 +302,13 @@ Be friendly, helpful, and guide them through everything step by step.
 
 ## Warriors Wiki
 
+When the user says "the wiki" they ALWAYS mean the **LCS Warriors Wiki**, never the Adom Wiki.
+
 - **URL:** https://lcs-wiki-bpd1iwhcgswk.adom.cloud/
 - **CLI:** `lcs-wiki page search "topic"`, `lcs-wiki page publish ...`
 - **Auth:** Google OAuth (@mylcs.com accounts)
+- To browse: open it in a Hydrogen webview, NOT VS Code simple browser
+- To search: `lcs-wiki page search "query"`
 
 ## Quick Reference
 
@@ -340,16 +348,36 @@ else
   warn "Warriors Wiki not reachable — check your network connection"
 fi
 
-# Store wiki URL for skills to reference
+# Detect user identity from Carbon API
+USER_NAME=""
+USER_DISPLAY=""
+USER_EMAIL=""
+if command -v adom-cli &>/dev/null; then
+  USER_INFO=$(adom-cli carbon user get 2>/dev/null || echo "{}")
+  USER_NAME=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('name',''))" 2>/dev/null || echo "")
+  USER_DISPLAY=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('display_name',''))" 2>/dev/null || echo "")
+  USER_EMAIL=$(echo "$USER_INFO" | python3 -c "import json,sys; print(json.load(sys.stdin).get('email',''))" 2>/dev/null || echo "")
+  if [ -n "$USER_DISPLAY" ]; then
+    ok "User: $USER_DISPLAY ($USER_EMAIL)"
+  fi
+fi
+
+# Store wiki URL + user identity for skills to reference
 mkdir -p "$HOME/.claude"
-cat > "$HOME/.claude/lcs-config.json" << LCSCFG
-{
-  "wiki_url": "${LCS_WIKI}",
-  "school": "Liberty Christian School",
-  "location": "Argyle, TX",
-  "mascot": "Warriors"
+python3 -c "
+import json
+cfg = {
+    'wiki_url': '${LCS_WIKI}',
+    'school': 'Liberty Christian School',
+    'location': 'Argyle, TX',
+    'mascot': 'Warriors',
+    'user_name': '${USER_NAME}',
+    'user_display_name': '${USER_DISPLAY}',
+    'user_email': '${USER_EMAIL}',
 }
-LCSCFG
+with open('$HOME/.claude/lcs-config.json', 'w') as f:
+    json.dump(cfg, f, indent=2)
+"
 ok "LCS config saved"
 
 # ── Phase 5b: Auto-Discovery Hooks ──────────────────────────
