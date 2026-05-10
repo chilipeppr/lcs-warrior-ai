@@ -304,16 +304,35 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
 ## CRITICAL RULES — FOLLOW THESE EXACTLY
 
 1. **NEVER open URLs in VS Code's simple browser.** This container uses Hydrogen webviews.
-   To show ANY webpage to the user, use:
-   ```bash
-   # First get the pane ID
-   PANE=$(adom-cli hydrogen workspace tabs | python3 -c "import json,sys; tabs=json.load(sys.stdin)['tabs']; print(tabs[0]['panelId'])")
-   # Then open the URL in a webview
-   adom-cli hydrogen webview open-or-refresh --name "Page Title" --url "https://..." --panel-id "$PANE"
-   ```
    NEVER use `adom-vscode command simpleBrowser.show` or any VS Code browser command.
 
-2. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`,
+2. **NEVER open a webview tab on top of the VS Code panel.** If a webview opens over
+   VS Code, the user loses sight of this Claude chat and CANNOT get back. This is the
+   most dangerous thing you can do. ALWAYS open webviews in a NON-VS-Code pane.
+
+   To show ANY webpage, use this exact pattern:
+   ```bash
+   # Find a non-VS-Code pane (webview pane), NEVER use the VS Code pane
+   PANE=$(adom-cli hydrogen workspace tabs | python3 -c "
+   import json,sys
+   VSCODE='adom/a1b2c3d4-eeee-4000-a000-00000000000e'
+   tabs=json.load(sys.stdin)['tabs']
+   # Prefer an existing non-VS-Code pane
+   for t in tabs:
+       if t['panelType'] != VSCODE:
+           print(t['panelId']); break
+   else:
+       # No webview pane exists — split the VS Code pane to create one
+       print('SPLIT')
+   ")
+   if [ "$PANE" = "SPLIT" ]; then
+     VSCODE_PANE=$(adom-cli hydrogen workspace tabs | python3 -c "import json,sys; [print(t['panelId']) for t in json.load(sys.stdin)['tabs'] if t['panelType']=='adom/a1b2c3d4-eeee-4000-a000-00000000000e']" | head -1)
+     PANE=$(adom-cli hydrogen workspace split --panel-id "$VSCODE_PANE" --direction horizontal --panel-type "adom/a1b2c3d4-0031-4000-a000-000000000031" --display-name "Webview" --position after --ratio 0.5 | python3 -c "import json,sys; print(json.load(sys.stdin).get('panelId',''))")
+   fi
+   adom-cli hydrogen webview open-or-refresh --name "Page Title" --url "https://..." --panel-id "$PANE"
+   ```
+
+3. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`,
    or direct HTTP/API calls to any wiki URL. Never fall back to the Adom Wiki
    (`wiki-ufypy5dpx93o.adom.cloud`) — it does not exist for LCS users.
    ```bash
@@ -324,14 +343,14 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
    ```
    If `lcs-wiki` is missing, tell the user to run the bootstrap command.
 
-3. **Use `adom-vscode` for VS Code operations** (open files, reveal in explorer, etc.),
+4. **Use `adom-vscode` for VS Code operations** (open files, reveal in explorer, etc.),
    NOT the `code` CLI which does not exist in this container.
 
-4. **Use LCS branding** (navy #001E60, gold #C5A44E, Source Sans Pro) for ALL visual output.
+5. **Use LCS branding** (navy #001E60, gold #C5A44E, Source Sans Pro) for ALL visual output.
 
-5. **Content must be school-appropriate** — this is a Christian school.
+6. **Content must be school-appropriate** — this is a Christian school.
 
-6. **Student data is FERPA/COPPA protected** — read the `lcs-security` skill before
+7. **Student data is FERPA/COPPA protected** — read the `lcs-security` skill before
    handling any student data, posting externally, or sending messages.
 
 ## Warriors Wiki
