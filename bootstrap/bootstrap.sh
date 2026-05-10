@@ -593,9 +593,15 @@ else
   echo -e "  ${GOLD}${WELCOME_URL}${NC}"
 fi
 
-# Note: adom-vscode claude-new-chat requires a VS Code reload first
-# (the extension was just installed). The welcome page guides the user
-# to click the Claude icon after they refresh their browser tab.
+# Set first-run flag so the UserPromptSubmit hook can run
+# `adom-vscode mode claudecode` after the user reloads their browser.
+# This only fires once — the hook removes the flag after running.
+SENTINEL="$HOME/.lcs/.needs-claudecode-mode"
+if [ ! -f "$HOME/.lcs/.bootstrapped" ]; then
+  mkdir -p "$HOME/.lcs"
+  touch "$SENTINEL"
+  ok "First-run flag set — Claude Code mode will activate after browser reload"
+fi
 
 # ── Done ─────────────────────────────────────────────────────
 header "Bootstrap Complete"

@@ -14,6 +14,22 @@ LCS_WIKI="https://lcs-wiki-bpd1iwhcgswk.adom.cloud"
 mkdir -p "$LCS_DIR"
 
 # ─────────────────────────────────────────────────────────────────
+# First-run: set Claude Code mode (clean VS Code layout)
+# The bootstrap sets ~/.lcs/.needs-claudecode-mode on first install.
+# After the user reloads their browser and adom-vscode is active,
+# this fires once to set up the clean Claude Code layout, then
+# removes the flag and writes ~/.lcs/.bootstrapped so it never
+# runs again.
+# ─────────────────────────────────────────────────────────────────
+CLAUDECODE_FLAG="${LCS_DIR}/.needs-claudecode-mode"
+BOOTSTRAPPED_FLAG="${LCS_DIR}/.bootstrapped"
+if [ -f "$CLAUDECODE_FLAG" ] && command -v adom-vscode &>/dev/null; then
+  adom-vscode mode claudecode >/dev/null 2>&1 || true
+  rm -f "$CLAUDECODE_FLAG"
+  touch "$BOOTSTRAPPED_FLAG"
+fi
+
+# ─────────────────────────────────────────────────────────────────
 # Wiki catalog refresh + stale-tool audit
 # ─────────────────────────────────────────────────────────────────
 STALE_REMINDER=""
