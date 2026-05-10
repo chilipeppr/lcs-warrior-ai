@@ -360,9 +360,22 @@ ask "who am I", tell them their name, email, and role at Liberty Christian Schoo
 When the user says "the wiki" or "wiki" they ALWAYS mean the **LCS Warriors Wiki**:
 https://lcs-wiki-bpd1iwhcgswk.adom.cloud/
 
-- To browse: open it in a Hydrogen webview (see rule 1 above)
+- To browse: open it in a Hydrogen webview (see rules 1-2 above)
 - To search: `lcs-wiki page search "query"`
 - Auth: Google OAuth (@mylcs.com accounts)
+
+### Wiki URL format
+Wiki page URLs use the format: `https://lcs-wiki-bpd1iwhcgswk.adom.cloud/<type>/<slug>`
+where `<type>` and `<slug>` come from the `lcs-wiki page search` or `lcs-wiki page get`
+results. NEVER guess or construct URLs — always get the type and slug from the CLI first.
+
+### Webview tab management
+NEVER create multiple webview tabs. Always reuse the same tab name **"Warriors Wiki"**
+for any wiki page. This keeps the pane clean and avoids confusing the user with many tabs.
+```bash
+adom-cli hydrogen webview open-or-refresh --name "Warriors Wiki" --url "https://..." --panel-id "$PANE"
+adom-cli hydrogen workspace active-tab --name "Warriors Wiki"
+```
 
 ## What You Can Help With
 
