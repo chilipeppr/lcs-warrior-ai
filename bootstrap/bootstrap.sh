@@ -330,10 +330,7 @@ When the user says "the wiki" they ALWAYS mean the **LCS Warriors Wiki**, never 
 - **Colors:** Navy (#001E60) and Gold (#C5A44E)
 - **Conference:** TAPPS Division I (6A)
 CLAUDEMD
-  ok "Created ~/.claude/CLAUDE.md"
-else
-  ok "~/.claude/CLAUDE.md already exists"
-fi
+ok "Created ~/.claude/CLAUDE.md"
 
 # ── Phase 5: Wiki Connection ────────────────────────────────
 header "Phase 5 · Wiki Connection"
