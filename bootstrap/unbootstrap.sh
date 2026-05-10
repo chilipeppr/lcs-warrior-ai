@@ -246,6 +246,9 @@ keys_to_remove = [
     'git.enableSmartCommit',
     'git.autofetch',
     'remote.otherPortsAttributes',
+    'workbench.secondarySideBar.visible',
+    'workbench.activityBar.visible',
+    'workbench.statusBar.visible',
 ]
 
 removed = [k for k in keys_to_remove if k in s]

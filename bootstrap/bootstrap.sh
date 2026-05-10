@@ -93,6 +93,8 @@ forced = {
     'git.autofetch': False,
     'remote.otherPortsAttributes': {'onAutoForward': 'silent'},
     'workbench.secondarySideBar.visible': False,
+    'workbench.activityBar.visible': False,
+    'workbench.statusBar.visible': False,
 }
 for k, v in forced.items():
     if s.get(k) != v:
@@ -135,6 +137,9 @@ else
     "git.enableSmartCommit": false,
     "git.autofetch": false,
     "remote.otherPortsAttributes": { "onAutoForward": "silent" },
+    "workbench.secondarySideBar.visible": false,
+    "workbench.activityBar.visible": false,
+    "workbench.statusBar.visible": false
 }
 SETTINGS
   ok "Created VS Code settings"
