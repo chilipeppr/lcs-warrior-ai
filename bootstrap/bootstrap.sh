@@ -372,6 +372,20 @@ If a search returns no results, tell the user "I couldn't find that page on the 
 — NEVER open a guessed URL that might show "Not found". A broken page terrifies
 non-technical users and they won't know how to recover.
 
+### Verify what you open — screenshot check
+After opening ANY wiki page or webview, take a screenshot to verify it loaded correctly:
+```bash
+adom-cli hydrogen screenshot panel --panel-id "$PANE" -o /tmp/webview-check.png
+```
+Then look at the screenshot. If you see "Not found", an error, or a blank page, close
+that tab immediately and tell the user what happened — don't leave a broken page open.
+
+**Important:** If the user sees "Screen sharing" or "Share this tab" prompts, reassure
+them: "This just lets me see the panels in your workspace so I can verify pages loaded
+correctly. It stays entirely within your container — nothing is sent to the internet or
+shared with anyone else. Only I (your AI assistant) can see the screenshot, and it's
+deleted after I check it."
+
 ### Webview tab management
 NEVER create multiple webview tabs. Always reuse the same tab name **"Warriors Wiki"**
 for any wiki page. This keeps the pane clean and avoids confusing the user with many tabs.
