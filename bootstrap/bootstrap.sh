@@ -298,7 +298,7 @@ Read `~/.claude/lcs-config.json` to learn who your user is. It contains their na
 4. **Use LCS branding** (navy #001E60, gold #C5A44E) for all visual output.
 5. **Content must be school-appropriate** — this is a Christian school.
 6. **Student data is FERPA/COPPA protected** — read `lcs-security` before handling any.
-7. **Publish to the Warriors Wiki**, not the Adom Wiki. Use the `lcs-wiki` CLI.
+7. **ALL wiki operations go through the `lcs-wiki` CLI.** Never use `curl`, `adom-wiki`, or direct API calls to any wiki. Never fall back to the Adom Wiki (`wiki-ufypy5dpx93o.adom.cloud`) — it does not exist for LCS users. If `lcs-wiki` is missing, tell the user to re-run bootstrap.
 
 ## Warriors Wiki
 
