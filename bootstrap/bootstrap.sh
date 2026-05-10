@@ -40,6 +40,27 @@ echo ""
 # ── Phase 1: Prerequisites ──────────────────────────────────
 header "Phase 1 · Prerequisites"
 
+# 1a0. Clean up default Adom workspace (remove 3D workcell, etc.)
+VSCODE_TYPE="adom/a1b2c3d4-eeee-4000-a000-00000000000e"
+if command -v adom-cli &>/dev/null; then
+  CLOSED=0
+  while IFS= read -r pid; do
+    [ -z "$pid" ] && continue
+    adom-cli hydrogen workspace close-panel "$pid" >/dev/null 2>&1 && CLOSED=$((CLOSED + 1))
+  done < <(adom-cli hydrogen workspace tabs 2>/dev/null | python3 -c "
+import json, sys
+try:
+    tabs = json.load(sys.stdin).get('tabs', [])
+    for t in tabs:
+        if t.get('panelType') != '$VSCODE_TYPE':
+            print(t['panelId'])
+except: pass
+" 2>/dev/null)
+  if [ "$CLOSED" -gt 0 ]; then
+    ok "Closed $CLOSED non-VS-Code panel(s) (3D workcell, etc.)"
+  fi
+fi
+
 # 1a. Claude Code VS Code extension
 if ls "$HOME/.local/share/code-server/extensions/anthropic.claude-code-"* &>/dev/null; then
   ok "Claude Code extension already installed"
