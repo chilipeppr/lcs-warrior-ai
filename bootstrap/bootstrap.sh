@@ -637,17 +637,27 @@ except: pass
           --ratio 0.5 >/dev/null 2>&1
       fi
 
-      # On first bootstrap, wait for adom-vscode then set clean layout
+      # On first bootstrap, wait for adom-vscode's websocket server to
+      # come online (port 8821), then set clean layout
       if [ "$FIRST_RUN" = "true" ]; then
+        # Phase 1: wait for adom-vscode health (extension activated + server ready)
         TRIES=0
-        while [ $TRIES -lt 15 ]; do
-          sleep 2
-          if adom-vscode mode claudecode >/dev/null 2>&1; then
-            adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
+        while [ $TRIES -lt 30 ]; do
+          if adom-vscode health >/dev/null 2>&1; then
             break
           fi
+          sleep 2
           TRIES=$((TRIES + 1))
         done
+
+        # Phase 2: extension is online — set clean layout
+        if [ $TRIES -lt 30 ]; then
+          sleep 1  # brief settle after health OK
+          adom-vscode mode claudecode >/dev/null 2>&1 || true
+          sleep 1
+          adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
+        fi
+
         mkdir -p "$(dirname "$BOOTSTRAPPED_FLAG")"
         touch "$BOOTSTRAPPED_FLAG"
       fi
