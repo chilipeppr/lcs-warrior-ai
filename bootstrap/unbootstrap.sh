@@ -246,7 +246,6 @@ keys_to_remove = [
     'git.enableSmartCommit',
     'git.autofetch',
     'remote.otherPortsAttributes',
-    'workbench.secondarySideBar.visible',
     'workbench.activityBar.visible',
     'workbench.statusBar.visible',
 ]
