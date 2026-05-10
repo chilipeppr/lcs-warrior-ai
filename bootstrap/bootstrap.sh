@@ -593,21 +593,70 @@ else
   echo -e "  ${GOLD}${WELCOME_URL}${NC}"
 fi
 
-# Set first-run flag so the UserPromptSubmit hook can run
-# `adom-vscode mode claudecode` after the user reloads their browser.
-# This only fires once — the hook removes the flag after running.
-SENTINEL="$HOME/.lcs/.needs-claudecode-mode"
-if [ ! -f "$HOME/.lcs/.bootstrapped" ]; then
-  mkdir -p "$HOME/.lcs"
-  touch "$SENTINEL"
-  ok "First-run flag set — Claude Code mode will activate after browser reload"
+# Reload VS Code by closing and reopening its panel.
+# This forces the newly installed adom-vscode extension to activate
+# without requiring a manual browser refresh.
+BOOTSTRAPPED_FLAG="$HOME/.lcs/.bootstrapped"
+if command -v adom-cli &>/dev/null; then
+  VSCODE_PANE=$(adom-cli hydrogen workspace tabs 2>/dev/null | python3 -c "
+import json, sys
+try:
+    for t in json.load(sys.stdin).get('tabs', []):
+        if t.get('panelType') == 'adom/a1b2c3d4-eeee-4000-a000-00000000000e':
+            print(t['panelId']); break
+except: pass
+" 2>/dev/null)
+
+  if [ -n "$VSCODE_PANE" ]; then
+    echo "  Reloading VS Code to activate extensions..."
+    adom-cli hydrogen workspace close-panel "$VSCODE_PANE" >/dev/null 2>&1
+
+    # Find the remaining pane (Warrior AI webview) to split VS Code back into
+    REMAINING_PANE=$(adom-cli hydrogen workspace tabs 2>/dev/null | python3 -c "
+import json, sys
+try:
+    tabs = json.load(sys.stdin).get('tabs', [])
+    if tabs: print(tabs[0]['panelId'])
+except: pass
+" 2>/dev/null)
+
+    if [ -n "$REMAINING_PANE" ]; then
+      # Split to create a new VS Code panel alongside the welcome page
+      adom-cli hydrogen workspace split \
+        --panel-id "$REMAINING_PANE" \
+        --direction horizontal \
+        --panel-type "adom/a1b2c3d4-eeee-4000-a000-00000000000e" \
+        --display-name "Visual Studio Code" \
+        --position before \
+        --ratio 0.5 >/dev/null 2>&1 \
+        && ok "VS Code reloaded" \
+        || warn "Could not reopen VS Code panel"
+    fi
+
+    # On first bootstrap, wait for adom-vscode to come online then set clean layout
+    if [ ! -f "$BOOTSTRAPPED_FLAG" ]; then
+      echo "  Waiting for adom-vscode extension to activate..."
+      TRIES=0
+      while [ $TRIES -lt 10 ]; do
+        if command -v adom-vscode &>/dev/null && adom-vscode mode claudecode >/dev/null 2>&1; then
+          ok "VS Code set to Claude Code mode (clean layout)"
+          break
+        fi
+        sleep 2
+        TRIES=$((TRIES + 1))
+      done
+      if [ $TRIES -eq 10 ]; then
+        warn "Could not set Claude Code mode — reload your browser and run: adom-vscode mode claudecode"
+      fi
+      mkdir -p "$(dirname "$BOOTSTRAPPED_FLAG")"
+      touch "$BOOTSTRAPPED_FLAG"
+    fi
+  fi
 fi
 
 # ── Done ─────────────────────────────────────────────────────
 header "Bootstrap Complete"
 
-echo -e "  ${BOLD}Refresh your browser tab${NC} to reload VS Code."
-echo ""
 echo -e "  The Warrior AI welcome page should already be open."
 echo -e "  Click the ${BOLD}orange Claude icon${NC} to start chatting."
 echo ""
