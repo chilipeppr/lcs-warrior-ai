@@ -639,6 +639,8 @@ except: pass
       TRIES=0
       while [ $TRIES -lt 10 ]; do
         if command -v adom-vscode &>/dev/null && adom-vscode mode claudecode >/dev/null 2>&1; then
+          # Force-hide the secondary sidebar (not always closed by mode switch)
+          adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
           ok "VS Code set to Claude Code mode (clean layout)"
           break
         fi
