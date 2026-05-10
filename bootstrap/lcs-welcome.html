@@ -406,10 +406,15 @@ document.addEventListener('click', (e) => {
   const box = e.target.closest('.prompt-box');
   if (!box) return;
   const text = box.textContent.replace(/[📋✓]/g, '').trim();
-  navigator.clipboard.writeText(text).then(() => {
-    box.classList.add('copied');
-    setTimeout(() => box.classList.remove('copied'), 1500);
-  });
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  box.classList.add('copied');
+  setTimeout(() => box.classList.remove('copied'), 1500);
 });
 </script>
 </body>
