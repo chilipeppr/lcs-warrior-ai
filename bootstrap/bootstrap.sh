@@ -608,6 +608,9 @@ except: pass
 " 2>/dev/null)
 
   if [ -n "$VSCODE_PANE" ]; then
+    # Clear previous reload log
+    rm -f "$HOME/.lcs/bootstrap-reload.log"
+
     # Spawn background process BEFORE closing VS Code, because closing
     # the VS Code panel kills the terminal running this script.
     # This detached process: reopens VS Code, waits for adom-vscode,
