@@ -616,6 +616,7 @@ except: pass
     [ ! -f "$BOOTSTRAPPED_FLAG" ] && FIRST_RUN="true"
 
     (
+      echo "[$(date)] Bootstrap reload started. FIRST_RUN=$FIRST_RUN"
       sleep 2  # let the close settle
 
       # Find the remaining pane (Warrior AI webview) to split VS Code back into
@@ -628,40 +629,48 @@ except: pass
 " 2>/dev/null)
 
       if [ -n "$REMAINING_PANE" ]; then
+        echo "[$(date)] Splitting VS Code back into pane $REMAINING_PANE"
         adom-cli hydrogen workspace split \
           --panel-id "$REMAINING_PANE" \
           --direction horizontal \
           --panel-type "adom/a1b2c3d4-eeee-4000-a000-00000000000e" \
           --display-name "Visual Studio Code" \
           --position before \
-          --ratio 0.5 >/dev/null 2>&1
+          --ratio 0.5 2>&1
+      else
+        echo "[$(date)] ERROR: No remaining pane found"
       fi
 
       # On first bootstrap, wait for adom-vscode's websocket server to
       # come online (port 8821), then set clean layout
       if [ "$FIRST_RUN" = "true" ]; then
-        # Phase 1: wait for adom-vscode health (extension activated + server ready)
+        echo "[$(date)] Waiting for adom-vscode health..."
         TRIES=0
         while [ $TRIES -lt 30 ]; do
-          if adom-vscode health >/dev/null 2>&1; then
+          if adom-vscode health 2>&1; then
+            echo "[$(date)] adom-vscode healthy after $TRIES tries"
             break
           fi
           sleep 2
           TRIES=$((TRIES + 1))
         done
 
-        # Phase 2: extension is online — set clean layout
         if [ $TRIES -lt 30 ]; then
-          sleep 1  # brief settle after health OK
-          adom-vscode mode claudecode >/dev/null 2>&1 || true
           sleep 1
-          adom-vscode command workbench.action.closeAuxiliaryBar >/dev/null 2>&1 || true
+          echo "[$(date)] Running: adom-vscode mode claudecode"
+          adom-vscode mode claudecode 2>&1
+          sleep 1
+          echo "[$(date)] Running: closeAuxiliaryBar"
+          adom-vscode command workbench.action.closeAuxiliaryBar 2>&1
+        else
+          echo "[$(date)] TIMEOUT: adom-vscode never came online"
         fi
 
         mkdir -p "$(dirname "$BOOTSTRAPPED_FLAG")"
         touch "$BOOTSTRAPPED_FLAG"
+        echo "[$(date)] Bootstrap reload complete"
       fi
-    ) </dev/null >/dev/null 2>&1 &
+    ) </dev/null >>"$HOME/.lcs/bootstrap-reload.log" 2>&1 &
     disown
 
     echo "  Reloading VS Code to activate extensions..."
