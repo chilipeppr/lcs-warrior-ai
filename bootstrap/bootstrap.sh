@@ -345,45 +345,16 @@ else
   warn "Warriors Wiki not reachable — check your network connection"
 fi
 
-# Detect user identity from Carbon API
-USER_NAME=""
-USER_DISPLAY=""
-USER_EMAIL=""
-if command -v adom-cli &>/dev/null; then
-  USER_INFO=$(adom-cli carbon user get 2>/dev/null || echo "{}")
-  eval "$(echo "$USER_INFO" | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-name = d.get('name') or ''
-display = d.get('display_name') or d.get('formatted_name') or name
-email = d.get('email') or ''
-print(f'USER_NAME={name!r}')
-print(f'USER_DISPLAY={display!r}')
-print(f'USER_EMAIL={email!r}')
-" 2>/dev/null)"
-  if [ -n "$USER_DISPLAY" ]; then
-    ok "User: $USER_DISPLAY ($USER_EMAIL)"
-  else
-    warn "User identity not found — set your profile at adom.cloud"
-  fi
-fi
-
-# Store wiki URL + user identity for skills to reference
+# Store wiki URL for skills (user identity added after adom-cli install below)
 mkdir -p "$HOME/.claude"
-python3 -c "
-import json
-cfg = {
-    'wiki_url': '${LCS_WIKI}',
-    'school': 'Liberty Christian School',
-    'location': 'Argyle, TX',
-    'mascot': 'Warriors',
-    'user_name': '${USER_NAME}',
-    'user_display_name': '${USER_DISPLAY}',
-    'user_email': '${USER_EMAIL}',
+cat > "$HOME/.claude/lcs-config.json" << LCSCFG
+{
+  "wiki_url": "${LCS_WIKI}",
+  "school": "Liberty Christian School",
+  "location": "Argyle, TX",
+  "mascot": "Warriors"
 }
-with open('$HOME/.claude/lcs-config.json', 'w') as f:
-    json.dump(cfg, f, indent=2)
-"
+LCSCFG
 ok "LCS config saved"
 
 # ── Phase 5b: Auto-Discovery Hooks ──────────────────────────
@@ -520,6 +491,31 @@ if ! command -v adom-cli &>/dev/null; then
   fi
 else
   ok "adom-cli already installed"
+fi
+
+# Now that adom-cli is available, detect user identity and update lcs-config.json
+if command -v adom-cli &>/dev/null; then
+  adom-cli carbon user get 2>/dev/null | python3 -c "
+import json, sys
+cfg_path = '$HOME/.claude/lcs-config.json'
+try:
+    info = json.load(sys.stdin)
+    with open(cfg_path) as f:
+        cfg = json.load(f)
+    cfg['user_name'] = info.get('name') or ''
+    cfg['user_display_name'] = info.get('display_name') or info.get('formatted_name') or info.get('name') or ''
+    cfg['user_email'] = info.get('email') or ''
+    with open(cfg_path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+    dn = cfg['user_display_name']
+    em = cfg['user_email']
+    if dn:
+        print(f'  \033[0;32m\u2713\033[0m User: {dn} ({em})')
+    else:
+        print('  \033[1;33m\u26a0\033[0m User identity not found — set your profile at adom.cloud')
+except Exception as e:
+    print(f'  \033[1;33m\u26a0\033[0m Could not detect user identity: {e}')
+" || true
 fi
 
 # Install adom-vscode CLI
