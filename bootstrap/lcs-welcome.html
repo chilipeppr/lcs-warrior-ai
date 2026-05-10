@@ -128,7 +128,7 @@
     background: #0A1628;
     border: 1px solid #243A6A;
     border-radius: 8px;
-    padding: 12px 16px;
+    padding: 12px 40px 12px 16px;
     margin-top: 12px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -136,8 +136,22 @@
     line-height: 1.5;
     cursor: pointer;
     transition: border-color 0.15s ease;
+    position: relative;
   }
   .prompt-box:hover { border-color: #C5A44E; }
+  .prompt-box::after {
+    content: '📋';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+  }
+  .prompt-box:hover::after { opacity: 0.8; }
+  .prompt-box.copied::after { content: '✓'; color: #C5A44E; opacity: 1; }
+  .prompt-box.copied { border-color: #C5A44E; }
 
   .wiki-link {
     display: inline-block;
@@ -387,5 +401,16 @@
 
   </div>
 </div>
+<script>
+document.addEventListener('click', (e) => {
+  const box = e.target.closest('.prompt-box');
+  if (!box) return;
+  const text = box.textContent.replace(/[📋✓]/g, '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    box.classList.add('copied');
+    setTimeout(() => box.classList.remove('copied'), 1500);
+  });
+});
+</script>
 </body>
 </html>
