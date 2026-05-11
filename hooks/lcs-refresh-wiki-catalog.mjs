@@ -186,15 +186,81 @@ async function auditTools() {
   return stale;
 }
 
+// ── Skill sync (mirrors lcs-install.mjs Section 1) ──────────
+// Fetches all skills from the wiki and deploys new/updated ones.
+// Runs on the same 30-min cadence as the discovery refresh.
+async function syncSkills() {
+  let pages;
+  try {
+    const r = await fetchWithTimeout(`${WIKI}/api/v1/pages?type=skill`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    pages = Array.isArray(data) ? data : (data.pages || []);
+  } catch (e) {
+    // Non-fatal: skill sync failure shouldn't block stale-tool audit
+    return { installed: 0, skipped: 0, removed: 0 };
+  }
+
+  const skillsDir = resolve(HOME, '.claude/skills');
+  const deployedSlugs = new Set();
+  let installed = 0, skipped = 0;
+
+  for (const page of pages) {
+    if (!page.skill_source || !page.slug) continue;
+    const slug = page.slug;
+    deployedSlugs.add(slug);
+    const dir = resolve(skillsDir, slug);
+    const file = resolve(dir, 'SKILL.md');
+
+    // Skip if content unchanged
+    if (existsSync(file)) {
+      try {
+        const existing = readFileSync(file, 'utf-8');
+        if (sha256(existing) === sha256(page.skill_source)) {
+          skipped++;
+          continue;
+        }
+      } catch {}
+    }
+
+    // Atomic write
+    mkdirSync(dir, { recursive: true });
+    const tmp = file + '.tmp';
+    writeFileSync(tmp, page.skill_source);
+    renameSync(tmp, file);
+    installed++;
+  }
+
+  // Clean up lcs-* skills that no longer exist on the wiki
+  let removed = 0;
+  try {
+    const { readdirSync } = await import('node:fs');
+    for (const entry of readdirSync(skillsDir)) {
+      if (entry.startsWith('lcs-') && !deployedSlugs.has(entry)) {
+        const skillFile = resolve(skillsDir, entry, 'SKILL.md');
+        try {
+          unlinkSync(skillFile);
+          try { unlinkSync(resolve(skillsDir, entry)); } catch {}
+          removed++;
+        } catch {}
+      }
+    }
+  } catch {}
+
+  return { installed, skipped, removed };
+}
+
 async function main() {
   acquireLockOrExit();
-  let snippetUpdated = false, stale = [];
+  let snippetUpdated = false, stale = [], skillSync = {};
   try { snippetUpdated = (await refreshSnippet()).snippet_updated; }
   catch (e) { markFail(e); return; }
+  try { skillSync = await syncSkills(); }
+  catch (e) { /* non-fatal */ }
   try { stale = await auditTools(); }
   catch (e) { markFail(e); return; }
   clearFail();
-  emit({ ok: true, snippet_updated: snippetUpdated, stale });
+  emit({ ok: true, snippet_updated: snippetUpdated, stale, skills_synced: skillSync });
 }
 
 main();

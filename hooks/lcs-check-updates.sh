@@ -13,44 +13,8 @@ LCS_WIKI="https://lcs-wiki-bpd1iwhcgswk.adom.cloud"
 
 mkdir -p "$LCS_DIR"
 
-INSTALL_REMINDER=""
-
 # ─────────────────────────────────────────────────────────────────
-# Part 1: Detect lcs-install.mjs changes
-# ─────────────────────────────────────────────────────────────────
-INSTALL_SCRIPT="${LCS_DIR}/lcs-install.mjs"
-INSTALL_HASH_FILE="${LCS_DIR}/last-install-hash"
-INSTALL_STAMP="${LCS_DIR}/last-install-check"
-INSTALL_INTERVAL="${LCS_INSTALL_INTERVAL:-1800}"
-
-should_check_install=0
-if [ ! -f "$INSTALL_STAMP" ]; then
-  should_check_install=1
-else
-  INSTALL_AGE=$(( $(date +%s) - $(stat -c %Y "$INSTALL_STAMP" 2>/dev/null || echo 0) ))
-  [ "$INSTALL_AGE" -ge "$INSTALL_INTERVAL" ] && should_check_install=1
-fi
-
-if [ "$should_check_install" = "1" ] && [ -f "$INSTALL_SCRIPT" ]; then
-  # Download latest from wiki and compare hash
-  WIKI_INSTALL_URL="${LCS_WIKI}/static/apps/lcs-bootstrap/lcs-install.mjs"
-  WIKI_INSTALL_TMP="/tmp/lcs-install-check.mjs"
-  if curl -fsSL "$WIKI_INSTALL_URL" -o "$WIKI_INSTALL_TMP" 2>/dev/null; then
-    WIKI_HASH=$(sha256sum "$WIKI_INSTALL_TMP" 2>/dev/null | cut -d' ' -f1)
-    LOCAL_HASH=$(sha256sum "$INSTALL_SCRIPT" 2>/dev/null | cut -d' ' -f1)
-    if [ -n "$WIKI_HASH" ] && [ "$WIKI_HASH" != "$LOCAL_HASH" ]; then
-      # Installer changed on wiki — update local copy and re-run
-      cp "$WIKI_INSTALL_TMP" "$INSTALL_SCRIPT"
-      node "$INSTALL_SCRIPT" 2>/dev/null || true
-      INSTALL_REMINDER="lcs-install.mjs was updated from the wiki and re-run. Skills and tools have been refreshed."
-    fi
-    rm -f "$WIKI_INSTALL_TMP"
-  fi
-  touch "$INSTALL_STAMP"
-fi
-
-# ─────────────────────────────────────────────────────────────────
-# Part 2: Wiki catalog refresh + stale-tool audit
+# Wiki catalog refresh + stale-tool audit
 # ─────────────────────────────────────────────────────────────────
 STALE_REMINDER=""
 
@@ -190,26 +154,15 @@ fi
 # ─────────────────────────────────────────────────────────────────
 # Compose system-reminder if stale tools found
 # ─────────────────────────────────────────────────────────────────
-if [ -z "$STALE_REMINDER" ] && [ -z "$INSTALL_REMINDER" ]; then
+if [ -z "$STALE_REMINDER" ]; then
   exit 0
 fi
 
-COMBINED=""
-if [ -n "$INSTALL_REMINDER" ]; then
-  COMBINED="$INSTALL_REMINDER"
-fi
-if [ -n "$STALE_REMINDER" ]; then
-  [ -n "$COMBINED" ] && COMBINED="$COMBINED
-
-"
-  COMBINED="${COMBINED}${STALE_REMINDER}"
-fi
-
 REMINDER="<system-reminder>
-$COMBINED
+$STALE_REMINDER
 </system-reminder>"
 
-SUMMARY="LCS updates — ${INSTALL_REMINDER:+installer updated }${STALE_REMINDER:+tool upgrades available}"
+SUMMARY="LCS tool updates available on the wiki — offer upgrade"
 
 REMINDER="$REMINDER" SUMMARY="$SUMMARY" python3 <<'PY'
 import json, os

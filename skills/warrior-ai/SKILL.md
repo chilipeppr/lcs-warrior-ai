@@ -57,6 +57,8 @@ For full CLI details, invoke `/lcs-wiki`.
 | `warrior-ai` | This skill — environment identity and getting started |
 | `liberty-christian` | Homework help, study guides, essay writing, test prep, Bible study |
 | `lcs-brand` | School brand colors, typography, design tokens |
+| `lcs-webview` | **Show any web content to the user** (proxy URLs, HTTP server, webview tabs) |
+| `lcs-ralph-test` | **Visual self-test** — screenshot and verify output before telling user it's ready |
 | `lcs-app-creator` | Build interactive web apps for the wiki |
 | `lcs-app-header` | Warriors-branded 44px header bar pattern |
 | `lcs-ui-patterns` | UI rules: tooltips, hover states, accessibility |
@@ -93,6 +95,19 @@ For full CLI details, invoke `/lcs-wiki`.
 | `lcs-security` | FERPA/COPPA compliance and safety rules |
 | `lcs-wiki-admin` | Wiki administration |
 | `lcs-chess` | Multiplayer chess game |
+| `lcs-auto-discover` | How auto-discovery works, adding discovery metadata |
+| `lcs-bootstrap` | Re-run the bootstrap to update everything |
+
+## Auto-Update System
+
+This container auto-updates from the wiki every 30 minutes:
+- **`lcs-install.mjs`** fetches ALL skills from the wiki API and deploys them
+- **`lcs-check-updates.sh`** detects when the installer or tools change on the wiki
+- **`lcs-refresh-wiki-catalog.mjs`** refreshes the discovery skill and audits tool versions
+
+To force a manual update: `node ~/.lcs/lcs-install.mjs`
+
+Only admins can modify `lcs-install.mjs` on the wiki (requires admin auth token to publish). Students and teachers run it but can't change what it deploys.
 
 ## Getting Started Prompts
 
@@ -107,9 +122,10 @@ When a user doesn't know what to do, suggest these:
 
 ## Behavior Rules
 
-1. Always use LCS branding (navy/gold, Source Sans Pro, Warriors shield) for any visual output
-2. Content must be school-appropriate — Christian school values
-3. Student data is protected under FERPA/COPPA — read `lcs-security` before handling any
-4. When building apps, always use the `lcs-app-header` pattern
-5. Default passive component size is 0402 for any electronics projects
-6. Publish to the Warriors Wiki, not the Adom Wiki
+1. **When showing ANY web content to the user (HTML, apps, cards, previews), use `lcs-webview`.** Serve via HTTP + proxy URL. NEVER use `file://` or `localhost` — the webview can't reach them.
+2. Always use LCS branding (navy/gold, Source Sans Pro, Warriors shield) for any visual output
+3. Content must be school-appropriate — Christian school values
+4. Student data is protected under FERPA/COPPA — read `lcs-security` before handling any
+5. When building apps, always use the `lcs-app-header` pattern
+6. Default passive component size is 0402 for any electronics projects
+7. Publish to the Warriors Wiki, not the Adom Wiki

@@ -13,19 +13,24 @@ Every CLI invocation prints JSON to stdout. Pipe through `jq` for extraction.
 
 Every `page publish`, `page edit`, and `asset upload` gets stamped
 with `pub_author_id` + `pub_author_name` on the server, derived from
-the bearer token in use. The author stamp is **server-controlled**.
+the bearer token in use.
 
-**The CLI hard-blocks shared-identity publishes** (v0.3.1+). If you
-run `page publish` / `page edit` / `asset upload` with the shared
-fallback token, the CLI exits with an error. Run `lcs-wiki set-author`
-to link your identity.
+### Auto-setup: run `set-author` before any publish
 
-### Flow on a fresh container
+**Before your first `lcs-wiki page publish`, `page edit`, or `asset upload`,
+you MUST ensure the author token exists.** Check for the token file and
+create it if missing — do this silently, never ask the user:
 
 ```bash
-lcs-wiki set-author        # one-time per container
-lcs-wiki page publish ...  # stamps you as the author
+# Silent auto-setup — run before any publish/edit/upload
+if [ ! -f ~/.config/adom-wiki/token ]; then
+  lcs-wiki set-author 2>/dev/null
+fi
 ```
+
+This is a one-time operation per container. Once the token exists, all
+subsequent publishes are attributed to the user automatically. **Never
+ask the student to run `set-author` manually — just do it for them.**
 
 ## Page references
 

@@ -208,13 +208,33 @@ async function deployTierACLIs() {
     }
   }
 
-  // lcs-wiki wrapper (always re-create to ensure correct wiki URL)
-  const lcsWikiScript = `#!/bin/bash\nexport ADOM_WIKI_API="${WIKI}"\nexec adom-wiki "$@"\n`;
-  writeFileSync('/tmp/lcs-wiki-install', lcsWikiScript, { mode: 0o755 });
+  // lcs-wiki: install native binary from wiki (replaces old bash wrapper)
+  const lcsWikiBinUrl = `${WIKI}/static/apps/lcs-bootstrap/lcs-wiki`;
   try {
-    execSync('sudo install -m 0755 /tmp/lcs-wiki-install /usr/local/bin/lcs-wiki', { stdio: 'pipe' });
-    unlinkSync('/tmp/lcs-wiki-install');
-    ok('lcs-wiki wrapper installed');
+    // Check if current lcs-wiki is the old bash wrapper or already a binary
+    let needsUpgrade = !isInstalled('lcs-wiki');
+    if (!needsUpgrade) {
+      try {
+        const head = readFileSync('/usr/local/bin/lcs-wiki', 'utf-8').slice(0, 20);
+        if (head.startsWith('#!/bin/bash')) needsUpgrade = true; // old wrapper
+      } catch {}
+    }
+    if (needsUpgrade) {
+      console.log('  Installing lcs-wiki binary...');
+      const r = await fetchWithTimeout(lcsWikiBinUrl);
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        const tmp = '/tmp/lcs-wiki-install';
+        writeFileSync(tmp, buf, { mode: 0o755 });
+        execSync(`sudo install -m 0755 ${tmp} /usr/local/bin/lcs-wiki`, { stdio: 'pipe' });
+        unlinkSync(tmp);
+        ok('lcs-wiki binary installed');
+      } else {
+        warn(`lcs-wiki: HTTP ${r.status}`);
+      }
+    } else {
+      ok('lcs-wiki already installed');
+    }
   } catch (e) {
     warn(`lcs-wiki: ${e.message}`);
   }
@@ -281,6 +301,27 @@ async function configureSettings() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// Section 3b: Auto-link wiki author identity
+// ══════════════════════════════════════════════════════════════
+function ensureWikiAuthor() {
+  const tokenPath = join(HOME, '.config/adom-wiki/token');
+  if (existsSync(tokenPath)) {
+    ok('Wiki author already linked');
+    return;
+  }
+  if (!isInstalled('lcs-wiki')) {
+    warn('lcs-wiki not installed — skipping author setup');
+    return;
+  }
+  try {
+    execSync('lcs-wiki set-author', { stdio: 'pipe', timeout: 10000 });
+    ok('Wiki author linked');
+  } catch (e) {
+    warn(`Wiki author setup failed: ${e.message}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // Section 4: Discovery catalog
 // ══════════════════════════════════════════════════════════════
 async function refreshDiscovery() {
@@ -323,6 +364,7 @@ async function main() {
   await deploySkills();
   await deployTierACLIs();
   await configureSettings();
+  ensureWikiAuthor();
   await refreshDiscovery();
   stampInstall();
 
